@@ -36,7 +36,6 @@ set(DEPENDENCIES
   pairs_lib
   std_msgs
   std_srvs
-  pairs_uav_testing
   backward_ros
   nlopt
 )
