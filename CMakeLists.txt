@@ -69,6 +69,14 @@ add_library(PairsUavTrajectoryGeneration_PairsTrajectoryGeneration
   src/pairs_trajectory_generation.cpp
   )
 
+# ensure dynamic_reconfigure drsConfig.h is generated before this lib compiles
+# (upstream omits this; it only matters in isolated single-job bloom builds)
+add_dependencies(PairsUavTrajectoryGeneration_PairsTrajectoryGeneration
+  ${PROJECT_NAME}_gencfg
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+  )
+
 include_directories(
   include
   test/include
