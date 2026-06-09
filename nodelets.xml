@@ -1,0 +1,11 @@
+<library path="lib/libPairsUavTrajectoryGeneration_PairsTrajectoryGeneration">
+  <class name="pairs_uav_trajectory_generation/PairsTrajectoryGeneration" type="pairs_uav_trajectory_generation::PairsTrajectoryGeneration" base_class_type="nodelet::Nodelet">
+    <description>PairsTrajectoryGeneration nodelet</description>
+  </class>
+</library>
+
+<library path="lib/libPairsUavTrajectoryGeneration_PathRandomFlier">
+  <class name="pairs_uav_trajectory_generation/PathRandomFlier" type="pairs_uav_trajectory_generation::PathRandomFlier" base_class_type="nodelet::Nodelet">
+    <description>the PathRandomFlier nodelet</description>
+  </class>
+</library>
