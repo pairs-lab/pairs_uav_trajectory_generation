@@ -27,7 +27,6 @@ set(CATKIN_DEPENDENCIES
   pairs_msgs
   pairs_lib
   nlopt
-  pairs_uav_testing
   )
 
 find_package(catkin REQUIRED COMPONENTS
