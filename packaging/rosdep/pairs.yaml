@@ -25,3 +25,5 @@ pairs_uav_testing:
   ubuntu: [ros-noetic-pairs-uav-testing]
 pairs_uav_gazebo_simulation:
   ubuntu: [ros-noetic-pairs-uav-gazebo-simulation]
+nlopt:
+  ubuntu: [libnlopt-cxx-dev]
