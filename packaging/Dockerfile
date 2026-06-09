@@ -1,5 +1,5 @@
-# Toolchain image for building ROS noetic .deb packages for pairs_uav_trajectory_generation.
-FROM ros:noetic-ros-base
+# Toolchain image for building ROS jazzy .deb packages for pairs_uav_trajectory_generation.
+FROM ros:jazzy-ros-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 

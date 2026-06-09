@@ -1,13 +1,17 @@
-find_package(rostest REQUIRED)
+find_package(ament_cmake_gtest REQUIRED)
+find_package(ament_cmake_ros REQUIRED)
+find_package(launch_testing_ament_cmake REQUIRED)
 
-add_subdirectory(service_fly_now)
+function(add_ros_isolated_launch_test path)
+  set(RUNNER "${ament_cmake_ros_DIR}/run_test_isolated.py")
+  add_launch_test("${path}" RUNNER "${RUNNER}" ${ARGN})
+endfunction()
 
-add_subdirectory(topic_fly_now)
+include_directories(include)
 
-add_subdirectory(fallback_sampling)
-
-add_subdirectory(path_before_takeoff)
-
-add_subdirectory(get_path_before_takeoff)
-
-add_subdirectory(get_path_after_takeoff)
+add_subdirectory(fallback_sampling_topic)
+add_subdirectory(fly_now_service)
+add_subdirectory(fly_now_topic)
+add_subdirectory(get_path_after_takeoff_service)
+add_subdirectory(get_path_before_takeoff_service)
+add_subdirectory(path_before_takeoff_service)

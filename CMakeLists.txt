@@ -1,140 +1,213 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 project(pairs_uav_trajectory_generation)
 
-set(CMAKE_CXX_STANDARD 17)
+# set the correct standards
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_definitions(-Wall)
-add_definitions(-Wextra)
+# 1 == use rclcpp::Timer implementation
+# 0 == use PAIRS's thread timer implementation
+set(USE_ROS_TIMER 0)
 
-if(NOT PAIRS_ENABLE_TESTING)
-  add_definitions(-O3)
+if(${USE_ROS_TIMER})
+  MESSAGE(WARNING "Compiling with ROS Timers. This can cause high CPU load in runtime.")
 endif()
 
-if(COVERAGE)
-  message(WARNING "building with --coverage, the performance might be limited")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+# set the compile options to show code warnings
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options("-Wall" "-Wextra")
 endif()
 
-set(CATKIN_DEPENDENCIES
-  cmake_modules
-  roscpp
-  rospy
-  nodelet
-  dynamic_reconfigure
-  std_msgs
+if(ENABLE_COVERAGE)
+  message(WARNING "building for coverage, the performance might be limited")
+
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -fprofile-arcs")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fprofile-arcs")
+
+  add_definitions("-O1")
+  add_definitions("-g")
+endif()
+
+set(DEPENDENCIES
+  rclcpp
+  rclcpp_components
   pairs_msgs
   pairs_lib
-  nlopt
+  std_msgs
+  std_srvs
   pairs_uav_testing
-  )
+  backward_ros
+  nlopt
+)
 
-find_package(catkin REQUIRED COMPONENTS
-  ${CATKIN_DEPENDENCIES}
-  )
-
-generate_dynamic_reconfigure_options(
-  config/drs.cfg
-  )
-
-find_package(Eigen3 REQUIRED)
-set(Eigen_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
-set(Eigen_LIBRARIES ${Eigen_LIBRARIES})
+foreach(DEP IN LISTS DEPENDENCIES)
+  find_package(${DEP} REQUIRED)
+endforeach()
 
 set(LIBRARIES
   PairsUavTrajectoryGeneration_EthTrajectoryGeneration
   PairsUavTrajectoryGeneration_PairsTrajectoryGeneration
   PairsUavTrajectoryGeneration_PathRandomFlier
-  )
+)
 
-catkin_package(
-  INCLUDE_DIRS include test/include
-  LIBRARIES ${LIBRARIES}
-  CATKIN_DEPENDS ${CATKIN_DEPENDENCIES}
-  DEPENDS Eigen
-  )
+## --------------------------------------------------------------
+## |                           Compile                          |
+## --------------------------------------------------------------
 
-add_library(PairsUavTrajectoryGeneration_EthTrajectoryGeneration
-  src/eth_trajectory_generation/motion_defines.cpp
-  src/eth_trajectory_generation/polynomial.cpp
-  src/eth_trajectory_generation/segment.cpp
-  src/eth_trajectory_generation/timing.cpp
-  src/eth_trajectory_generation/trajectory.cpp
-  src/eth_trajectory_generation/trajectory_sampling.cpp
-  src/eth_trajectory_generation/vertex.cpp
-  src/eth_trajectory_generation/rpoly/rpoly_ak1.cpp
-  )
+# Internal common library
 
-add_library(PairsUavTrajectoryGeneration_PairsTrajectoryGeneration
-  src/pairs_trajectory_generation.cpp
-  )
+add_library(PairsUavTrajectoryGeneration_InternalCommon INTERFACE)
+add_library(pairs_uav_trajectory_generation::internal_common ALIAS
+  PairsUavTrajectoryGeneration_InternalCommon
+)
 
-include_directories(
-  include
-  test/include
-  ${catkin_INCLUDE_DIRS}
-  ${Eigen_INCLUDE_DIRS}
-  ${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake
-  )
+target_link_libraries(PairsUavTrajectoryGeneration_InternalCommon
+  INTERFACE
+    rclcpp::rclcpp
+    rclcpp_components::component
+    pairs_lib::pairs_lib
+    nlopt::nlopt
+    ${pairs_msgs_TARGETS}
+    ${std_msgs_TARGETS}
+    ${std_srvs_TARGETS}
+)
+
+# ETH Trajectory Generation
+
+add_library(PairsUavTrajectoryGeneration_EthTrajectoryGeneration SHARED)
+add_library(pairs_uav_trajectory_generation::eth_trajectory_generation ALIAS
+  PairsUavTrajectoryGeneration_EthTrajectoryGeneration
+)
+
+target_sources(PairsUavTrajectoryGeneration_EthTrajectoryGeneration
+  PRIVATE
+    "src/eth_trajectory_generation/motion_defines.cpp"
+    "src/eth_trajectory_generation/polynomial.cpp"
+    "src/eth_trajectory_generation/segment.cpp"
+    "src/eth_trajectory_generation/timing.cpp"
+    "src/eth_trajectory_generation/trajectory.cpp"
+    "src/eth_trajectory_generation/trajectory_sampling.cpp"
+    "src/eth_trajectory_generation/vertex.cpp"
+    "src/eth_trajectory_generation/rpoly/rpoly_ak1.cpp"
+)
+
+# Headers are not installed so there is no install interface
+target_include_directories(PairsUavTrajectoryGeneration_EthTrajectoryGeneration
+  PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+)
+
+target_link_libraries(PairsUavTrajectoryGeneration_EthTrajectoryGeneration
+  PUBLIC
+    pairs_uav_trajectory_generation::internal_common
+)
+
+# PAIRS Trajectory Generation
+
+add_library(PairsUavTrajectoryGeneration_PairsTrajectoryGeneration SHARED)
+
+target_sources(PairsUavTrajectoryGeneration_PairsTrajectoryGeneration
+  PRIVATE
+    "src/pairs_trajectory_generation.cpp"
+)
 
 target_link_libraries(PairsUavTrajectoryGeneration_PairsTrajectoryGeneration
-  PairsUavTrajectoryGeneration_EthTrajectoryGeneration
-  ${catkin_LIBRARIES}
-  ${Eigen_LIBRARIES}
-  )
+  PUBLIC
+    pairs_uav_trajectory_generation::internal_common
+    pairs_uav_trajectory_generation::eth_trajectory_generation
+)
 
-## | -------------------- path random flier ------------------- |
+target_compile_definitions(PairsUavTrajectoryGeneration_PairsTrajectoryGeneration PRIVATE USE_ROS_TIMER=${USE_ROS_TIMER})
 
-add_library(PairsUavTrajectoryGeneration_PathRandomFlier
-  src/path_random_flier.cpp
-  )
-
-add_dependencies(PairsUavTrajectoryGeneration_PathRandomFlier
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
-  )
-
-target_link_libraries(PairsUavTrajectoryGeneration_PathRandomFlier
-  ${catkin_LIBRARIES}
-  )
+rclcpp_components_register_nodes(PairsUavTrajectoryGeneration_PairsTrajectoryGeneration
+  "pairs_uav_trajectory_generation::PairsTrajectoryGeneration"
+)
 
 ## --------------------------------------------------------------
-## |                           Testing                          |
+## |                           testing                          |
 ## --------------------------------------------------------------
 
-if(CATKIN_ENABLE_TESTING AND PAIRS_ENABLE_TESTING)
-
-  message(WARNING "Testing enabled.")
+if(ENABLE_TESTS)
 
   add_subdirectory(test)
 
+  if(NOT DEFINED ENV{IN_NIX_SHELL})
+    message(WARNING "Compiling lint tests")
+    find_package(ament_cmake_clang_format REQUIRED)
+    ament_clang_format(CONFIG_FILE "${PROJECT_SOURCE_DIR}/.clang-format")
+    find_package(ament_cmake_xmllint REQUIRED)
+    ament_xmllint()
+  endif()
+
 endif()
 
+## | -------------------- path random flier ------------------- |
+
+add_library(PairsUavTrajectoryGeneration_PathRandomFlier SHARED)
+
+target_sources(PairsUavTrajectoryGeneration_PathRandomFlier
+  PRIVATE
+    "src/path_random_flier.cpp"
+)
+
+target_link_libraries(PairsUavTrajectoryGeneration_PathRandomFlier
+  PUBLIC
+    pairs_uav_trajectory_generation::internal_common
+)
+
+target_compile_definitions(PairsUavTrajectoryGeneration_PathRandomFlier PRIVATE USE_ROS_TIMER=${USE_ROS_TIMER})
+
+rclcpp_components_register_nodes(PairsUavTrajectoryGeneration_PathRandomFlier
+  "pairs_uav_trajectory_generation::PathRandomFlier"
+)
+
 ## --------------------------------------------------------------
-## |                           Install                          |
+## |                           install                          |
 ## --------------------------------------------------------------
 
-install(TARGETS ${LIBRARIES}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-  )
+install(
+  TARGETS
+    PairsUavTrajectoryGeneration_InternalCommon
+    ${LIBRARIES}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
-install(DIRECTORY launch config
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  )
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
 
-install(DIRECTORY scripts/
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY scripts
   USE_SOURCE_PERMISSIONS
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
+  DESTINATION lib/${PROJECT_NAME}
+)
 
-install(DIRECTORY scripts
+install(
+  DIRECTORY tmux
   USE_SOURCE_PERMISSIONS
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  )
+  DESTINATION share/${PROJECT_NAME}
+)
 
-install(FILES nodelets.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  )
+ament_export_targets(
+  export_${PROJECT_NAME} HAS_LIBRARY_TARGET
+)
+
+ament_export_libraries(
+  ${LIBRARIES}
+)
+
+ament_export_dependencies(
+  ${DEPENDENCIES}
+)
+
+ament_package()

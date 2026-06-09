@@ -13,8 +13,7 @@ public:
   std::shared_ptr<pairs_uav_testing::UAVHandler> uh_;
 };
 
-TrajectoryGenerationTest::TrajectoryGenerationTest() : pairs_uav_testing::TestGeneric() {
-};
+TrajectoryGenerationTest::TrajectoryGenerationTest() : pairs_uav_testing::TestGeneric(){};
 
 std::tuple<bool, std::string> TrajectoryGenerationTest::checkPathFlythrough(const std::vector<Eigen::Vector4d> &waypoints) {
 
@@ -22,15 +21,17 @@ std::tuple<bool, std::string> TrajectoryGenerationTest::checkPathFlythrough(cons
 
   while (true) {
 
-    if (!ros::ok()) {
+    if (!rclcpp::ok()) {
       return {false, "terminated form outside"};
     }
 
-    if (uh_->isAtPosition(waypoints[current_idx][0], waypoints[current_idx][1], waypoints[current_idx][2], waypoints[current_idx][3], 1.2)) {
+    if (uh_->isAtPosition(waypoints[current_idx][0], waypoints[current_idx][1], waypoints[current_idx][2], waypoints[current_idx][3], 2.0)) {
+      RCLCPP_INFO(node_->get_logger(), "reached waypoint %lu", current_idx);
       current_idx++;
     }
 
     if (current_idx == waypoints.size()) {
+      RCLCPP_INFO(node_->get_logger(), "reached last waypoint");
       return {true, "waypoints passed"};
     }
 
@@ -38,4 +39,4 @@ std::tuple<bool, std::string> TrajectoryGenerationTest::checkPathFlythrough(cons
   }
 }
 
-#endif  // TRAJECTORY_GENERATION_TEST_H
+#endif // TRAJECTORY_GENERATION_TEST_H

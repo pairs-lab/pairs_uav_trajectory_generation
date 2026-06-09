@@ -3,7 +3,7 @@
 
 #include <pairs_uav_testing/test_generic.h>
 
-#include <pairs_msgs/TrajectoryReference.h>
+#include <pairs_msgs/msg/trajectory_reference.hpp>
 
 using sradians = pairs_lib::geometry::sradians;
 
@@ -15,16 +15,16 @@ class GetPathTest : public pairs_uav_testing::TestGeneric {
 public:
   GetPathTest();
 
-  bool checkTrajectory(const pairs_msgs::TrajectoryReference& trajectory, const pairs_msgs::Path& path, bool starting_from_current_pos);
+  bool checkTrajectory(const pairs_msgs::msg::TrajectoryReference &trajectory, const pairs_msgs::msg::Path &path, bool starting_from_current_pos);
 
-  bool checkWaypintIdxs(const Eigen::VectorXd& idxs, const pairs_msgs::Path& path);
+  bool checkWaypintIdxs(const Eigen::VectorXd &idxs, const pairs_msgs::msg::Path &path);
 
   std::shared_ptr<pairs_uav_testing::UAVHandler> uh_;
 };
 
 GetPathTest::GetPathTest() : pairs_uav_testing::TestGeneric(){};
 
-bool GetPathTest::checkTrajectory(const pairs_msgs::TrajectoryReference& trajectory, const pairs_msgs::Path& path, bool starting_from_current_pos) {
+bool GetPathTest::checkTrajectory(const pairs_msgs::msg::TrajectoryReference &trajectory, const pairs_msgs::msg::Path &path, bool starting_from_current_pos) {
 
   if (starting_from_current_pos) {
 
@@ -32,12 +32,12 @@ bool GetPathTest::checkTrajectory(const pairs_msgs::TrajectoryReference& traject
     auto hdg = uh_->getTrackerCmd()->heading;
 
     if (std::hypot(pos.x - trajectory.points[0].position.x, pos.y - trajectory.points[0].position.y, pos.z - trajectory.points[0].position.z) > POS_TOLERANCE) {
-      ROS_ERROR("[%s]: trajectories differ at the translation of the initial condition", ros::this_node::getName().c_str());
+      RCLCPP_ERROR(node_->get_logger(), "trajectories differ at the translation of the initial condition");
       return false;
     }
 
     if (path.use_heading && abs(sradians::diff(trajectory.points[0].heading, hdg)) > HDG_TOLERANCE) {
-      ROS_ERROR("[%s]: trajectories differ at the heading of the initial condition", ros::this_node::getName().c_str());
+      RCLCPP_ERROR(node_->get_logger(), "trajectories differ at the heading of the initial condition");
       return false;
     }
   }
@@ -68,17 +68,17 @@ bool GetPathTest::checkTrajectory(const pairs_msgs::TrajectoryReference& traject
   return false;
 }
 
-bool GetPathTest::checkWaypintIdxs(const Eigen::VectorXd& idxs, const pairs_msgs::Path& path) {
+bool GetPathTest::checkWaypintIdxs(const Eigen::VectorXd &idxs, const pairs_msgs::msg::Path &path) {
 
   if (int(idxs.size()) != int(path.points.size())) {
-    ROS_ERROR("[%s]: the original path length (%d) is different than the number of idxs in the list (%d)", ros::this_node::getName().c_str(),
-              int(path.points.size()), int(idxs.size()));
+    RCLCPP_ERROR(node_->get_logger(), "the original path length (%d) is different than the number of idxs in the list (%d)", int(path.points.size()),
+                 int(idxs.size()));
     return false;
   }
 
   for (int i = 0; i < idxs.size(); i++) {
     if (idxs[i] == 0) {
-      ROS_ERROR("[%s]: idxs[%d] == 0", ros::this_node::getName().c_str(), i);
+      RCLCPP_ERROR(node_->get_logger(), "idxs[%d] == 0", i);
       return false;
     }
   }
@@ -86,4 +86,4 @@ bool GetPathTest::checkWaypintIdxs(const Eigen::VectorXd& idxs, const pairs_msgs
   return true;
 }
 
-#endif  // GET_PATH_TEST_H
+#endif // GET_PATH_TEST_H
