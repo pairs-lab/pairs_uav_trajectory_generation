@@ -21,7 +21,7 @@
   <depend>launch</depend>
   <depend>launch_ros</depend>
   <depend>builtin_interfaces</depend>
-  <depend version_gte="2.4.2">nlopt</depend>
+  <depend>nlopt</depend>
 
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>

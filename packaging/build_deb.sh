@@ -31,6 +31,9 @@ build_one() {
   rm -rf "$work"; cp -a "$pkg_dir" "$work"; cd "$work"; rm -rf debian obj-*
   rosdep install --from-paths . --ignore-src -r -y || true
   bloom-generate rosdebian --os-name "$OS_NAME" --os-version "$OS_VERSION" --ros-distro "$ROS_DISTRO_NAME"
+  # ros-<distro>-nlopt declares cmake version 2.4.2 but the apt package is 2.1.21,
+  # so catkin emits an unsatisfiable "(>= 2.4.2)" — strip the version constraint.
+  [ -f debian/control ] && sed -i -E 's/(ros-[a-z0-9]+-nlopt) \(>= [0-9.]+\)/\1/g' debian/control
   fakeroot debian/rules binary
   local deb
   for deb in /ws/ros-${ROS_DISTRO_NAME}-*"${pkg_name//_/-}"*.deb ../ros-${ROS_DISTRO_NAME}-*.deb; do

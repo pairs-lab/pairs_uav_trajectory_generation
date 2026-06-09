@@ -21,9 +21,19 @@ pairs_uav_autostart:
   ubuntu: [ros-jazzy-pairs-uav-autostart]
 pairs_uav_status:
   ubuntu: [ros-jazzy-pairs-uav-status]
+pairs_multirotor_simulator:
+  ubuntu: [ros-jazzy-pairs-multirotor-simulator]
+pairs_rviz_plugins:
+  ubuntu: [ros-jazzy-pairs-rviz-plugins]
+pairs_uav_core:
+  ubuntu: [ros-jazzy-pairs-uav-core]
 pairs_uav_testing:
   ubuntu: [ros-jazzy-pairs-uav-testing]
 pairs_uav_gazebo_simulation:
   ubuntu: [ros-jazzy-pairs-uav-gazebo-simulation]
 nlopt:
   ubuntu: [ros-jazzy-nlopt]
+tmuxinator:
+  ubuntu: [tmuxinator]
+moreutils:
+  ubuntu: [moreutils]
