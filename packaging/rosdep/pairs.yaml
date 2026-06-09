@@ -26,4 +26,4 @@ pairs_uav_testing:
 pairs_uav_gazebo_simulation:
   ubuntu: [ros-jazzy-pairs-uav-gazebo-simulation]
 nlopt:
-  ubuntu: [libnlopt-cxx-dev]
+  ubuntu: [ros-jazzy-nlopt]
