@@ -1,14 +1,35 @@
 # pairs_uav_trajectory_generation
 
-Part of the **PAIRS UAV system**.
+Turns a sparse list of waypoints (a path) into a smooth, dynamically feasible time-parametrized trajectory for the UAV to track. It plans minimum-snap polynomial segments through the waypoints while respecting the UAV's speed and acceleration limits, so the rest of the PAIRS control stack can follow the result. This is the planning layer that feeds reference trajectories to the control manager.
+
+## Contents
+
+- `PairsTrajectoryGeneration` composable node — accepts a path (topic or service) and returns a sampled, time-optimal trajectory.
+- `PathRandomFlier` composable node — generates random paths and feeds them to the generator, useful for testing and stress-testing the planning/control loop.
+- Bundled ETH polynomial trajectory-optimization library (`eth_trajectory_generation`), used internally for the minimum-snap optimization.
 
 ## Branches
+
 - `ros1` — ROS 1 Noetic (catkin)
 - `ros2` — ROS 2 Jazzy (ament_cmake)
 
-## Install (ROS 1 Noetic)
+## Install (ROS 2 Jazzy)
+
 ```bash
-sudo apt install ros-noetic-pairs-uav-trajectory-generation
+sudo apt install ros-jazzy-pairs-uav-trajectory-generation
+```
+
+## Usage
+
+```bash
+ros2 launch pairs_uav_trajectory_generation trajectory_generation.launch.py
+ros2 launch pairs_uav_trajectory_generation path_random_flier.launch.py
+```
+
+A ready-to-run tmux simulation session is provided under `tmux/path_random_flier/`:
+
+```bash
+cd tmux/path_random_flier && ./start.sh
 ```
 
 ## License
