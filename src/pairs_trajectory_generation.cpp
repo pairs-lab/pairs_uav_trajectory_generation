@@ -1198,7 +1198,7 @@ std::optional<eth_mav_msgs::EigenTrajectoryPoint::Vector> PairsTrajectoryGenerat
               (states.size() * sampling_dt) / initial_total_time_baca);
   }
 
-  if (success) {
+  if (success && states.size() >= 2) {
     ROS_DEBUG("[TrajectoryGeneration]: eth sampling finished, took %.3f s", (ros::Time::now() - find_trajectory_time_start).toSec());
     return std::optional(states);
 
@@ -1386,10 +1386,10 @@ std::optional<eth_mav_msgs::EigenTrajectoryPoint::Vector> PairsTrajectoryGenerat
 
   // | --------------- create the trajectory class -------------- |
 
-  if (success) {
+  if (success && states.size() >= 2) {
     return std::optional(states);
   } else {
-    ROS_ERROR("[TrajectoryGeneration]: fallback: sampling failed");
+    ROS_ERROR("[TrajectoryGeneration]: fallback: sampling produced %zu samples (degenerate/coincident path)", states.size());
     return {};
   }
 }
@@ -1405,8 +1405,14 @@ std::tuple<bool, int, std::vector<bool>, double> PairsTrajectoryGeneration::vali
 
   // prepare the output
 
+  // guard against empty/degenerate inputs: size()-1 on an empty vector
+  // underflows (size_t) to SIZE_MAX, driving the loops below out of bounds.
+  if (trajectory.size() < 2 || waypoints.size() < 2) {
+    return std::tuple(true, int(trajectory.size()), std::vector<bool>(), 0.0);
+  }
+
   std::vector<bool> segments;
-  for (size_t i = 0; i < waypoints.size() - 1; i++) {
+  for (size_t i = 0; i + 1 < waypoints.size(); i++) {
     segments.push_back(true);
   }
 
@@ -1415,7 +1421,7 @@ std::tuple<bool, int, std::vector<bool>, double> PairsTrajectoryGeneration::vali
   bool   is_safe       = true;
   double max_deviation = 0;
 
-  for (size_t i = 0; i < trajectory.size() - 1; i++) {
+  for (size_t i = 0; i + 1 < trajectory.size(); i++) {
 
     // the trajectory sample
     const vec3_t sample = vec3_t(trajectory.at(i).position_W(0), trajectory.at(i).position_W(1), trajectory.at(i).position_W(2));
@@ -1468,7 +1474,12 @@ std::vector<int> PairsTrajectoryGeneration::getWaypointInTrajectoryIdxs(const pa
 
   int waypoint_idx = 0;
 
-  for (size_t i = 0; i < trajectory.points.size() - 1; i++) {
+  // guard against an empty trajectory: points.size()-1 would underflow (size_t)
+  if (trajectory.points.size() < 2 || waypoints.size() < 1) {
+    return idxs;
+  }
+
+  for (size_t i = 0; i + 1 < trajectory.points.size(); i++) {
 
     // the trajectory sample
     const vec3_t sample = vec3_t(trajectory.points.at(i).position.x, trajectory.points.at(i).position.y, trajectory.points.at(i).position.z);
