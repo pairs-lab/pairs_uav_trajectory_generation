@@ -26,12 +26,25 @@ set(CATKIN_DEPENDENCIES
   std_msgs
   pairs_msgs
   pairs_lib
-  nlopt
   )
 
 find_package(catkin REQUIRED COMPONENTS
   ${CATKIN_DEPENDENCIES}
   )
+
+# Use the SYSTEM nlopt (libnlopt-cxx-dev), not the catkin ros-<distro>-nlopt
+# component. The latter ships a header and library from mismatched nlopt versions
+# (same SONAME libnlopt_cxx.so.0), which makes nlopt::opt::set_min_objective jump
+# to the wrong symbol and segfault during trajectory optimization. Locate the
+# system nlopt explicitly (NO_DEFAULT_PATH skips /opt/ros's broken copy); linking
+# the system C library libnlopt.so.0 also avoids the SONAME collision, since
+# ros-<distro>-nlopt only provides libnlopt_cxx.so.0. Matches the ROS2/jazzy build.
+find_library(NLOPT_LIBRARY NAMES nlopt PATHS /usr/lib /usr/lib/x86_64-linux-gnu NO_DEFAULT_PATH)
+find_path(NLOPT_INCLUDE_DIR NAMES nlopt.hpp PATHS /usr/include NO_DEFAULT_PATH)
+if(NOT NLOPT_LIBRARY OR NOT NLOPT_INCLUDE_DIR)
+  message(FATAL_ERROR "system nlopt not found — install libnlopt-cxx-dev")
+endif()
+message(STATUS "Using system nlopt: ${NLOPT_LIBRARY} (header ${NLOPT_INCLUDE_DIR})")
 
 generate_dynamic_reconfigure_options(
   config/drs.cfg
@@ -82,6 +95,7 @@ include_directories(
   test/include
   ${catkin_INCLUDE_DIRS}
   ${Eigen_INCLUDE_DIRS}
+  ${NLOPT_INCLUDE_DIR}
   ${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake
   )
 
@@ -89,6 +103,7 @@ target_link_libraries(PairsUavTrajectoryGeneration_PairsTrajectoryGeneration
   PairsUavTrajectoryGeneration_EthTrajectoryGeneration
   ${catkin_LIBRARIES}
   ${Eigen_LIBRARIES}
+  ${NLOPT_LIBRARY}
   )
 
 ## | -------------------- path random flier ------------------- |
